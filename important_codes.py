@@ -7,6 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1TSouPitPre4Z5wYVY6Mn05z2BT-d1Ogd
 """
 
+# Building correlation plots
 import matplotlib.pyplot as plt
 
 def plot_corr(df,size=10):
@@ -65,11 +66,14 @@ import warnings
 warnings.filterwarnings(action="ignore", message="^internal gelsd")
 pd.options.display.max_columns = None
 
+# To get detailed summary of data
 print ("Rows     : " , insurance.shape[0])
 print ("Columns  : " , insurance.shape[1])
 print ("\nFeatures : \n" , insurance.columns.tolist())
 print ("\nMissing values :  ", insurance.isnull().sum().values.sum())
 print ("\nUnique values :  \n",insurance.nunique())
+
+# Column preprocessing structure
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
@@ -109,6 +113,8 @@ sc = StandardScaler()
 X_train = sc.fit_transform(X_train)
 X_test = sc.transform(X_test)
 
+# Creating a class in Python
+
 from sklearn.base import BaseEstimator, TransformerMixin
 from datetime import datetime
 numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
@@ -138,6 +144,8 @@ class CombinedAttributesAdder(BaseEstimator, TransformerMixin):
         else:
             return X.values
 
+# Creating pipelines in python
+
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -164,6 +172,9 @@ mid_pipeline = ColumnTransformer([
         ("num", num_pipeline, num_cols),
         ("cat", OneHotEncoder(),cat_cols ),
     ])
+
+# Preprocessing in one step using pipeline
+
 
 mid_pipeline.fit(X) # this one specifically has to be fitted for the cat names
 cat_encoder = mid_pipeline.named_transformers_["cat"]
@@ -200,6 +211,8 @@ X_pr = pipe(**params).fit_transform(X) # Now we have done all the preprocessing 
 
 df_client = pipe(list(df_client.index)).transform(df_client)
 
+# Train test split
+
 from sklearn.model_selection import train_test_split
 
 # We remove the label values from our training data
@@ -209,6 +222,8 @@ X = hr_df_final.drop(['Survived'],axis=1).values
 y = hr_df_final['Survived'].values
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+
+# Prediction and accuracy for models
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix
@@ -226,6 +241,8 @@ print(confusion_matrix(y_test, predictions))
 print(classification_report(y_test, predictions))
 
 # Commented out IPython magic to ensure Python compatibility.
+# Neural nets example
+
 # %tensorflow_version 2.x 
 
 # If you wish to use Tensorflow 1.X run the following line and then restart runtime
@@ -308,6 +325,8 @@ predictions = (predictions > 0.5)
 print(confusion_matrix(y_test, predictions))
 print(classification_report(y_test, predictions))
 
+# Cross validation
+
 from sklearn.model_selection import cross_val_score
 
 scores = cross_val_score(DecisionTreeRegressor(random_state=42), X_pr, Y,
@@ -320,6 +339,8 @@ def display_scores(scores):
     print("Standard deviation:", scores.std())
 
 display_scores(tree_rmse_scores)
+
+# Using grid search
 
 ## 30 Seconds to run this code block.
 from sklearn.model_selection import GridSearchCV
@@ -347,6 +368,8 @@ for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
 print("")
 print("Best grid-search performance: ", np.sqrt(-cvres["mean_test_score"].max()))
 
+# Randomized search
+
 from sklearn.model_selection import RandomizedSearchCV
 from scipy.stats import randint
 
@@ -366,3 +389,43 @@ for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
     
 print("Best grid-search performance: ", np.sqrt(-cvres["mean_test_score"].max()))
 
+"""T-Value
+
+The t-value measures the degree of difference relative to the variation in our data groups. Large t-values indicate a higher degree of difference between the grups.
+
+P-Value
+
+P-value measures the probability that the results would occur by random chance. Therefore the smaller the p-value is, the more statistically significant difference there will be between the two groups
+
+
+Analysis of P and t-values
+
+Our P-Value is close to 0 which suggests that there is good evidence to REJECT the Null Hypothesis. Meaning the there is a statistical difference between the two groups. Our threshold rejectings the Null is usually less than 0.05.
+
+Our t-test shows that the marketing performances for these two groups are significantly different and that promotion group 1 outperforms promotion group 2.
+"""
+
+# Computing the t and p values using scipy 
+from scipy import stats
+
+t, p = stats.ttest_ind(df.loc[df['Promotion'] == 1, 'SalesInThousands'].values,
+                       df.loc[df['Promotion'] == 2, 'SalesInThousands'].values, 
+                       equal_var=False)
+print("t-value = " +str(t))
+print("p-value = " +str(p))
+
+# Playing with date
+L = ['year', 'month', 'day', 'dayofweek', 'dayofyear', 'weekofyear', 'quarter']
+df2 = df2.join(pd.concat((getattr(df2['InvoiceDate'].dt, i).rename(i) for i in L), axis=1))
+
+# Group by example
+sales_per_cust = df2.groupby(by=['CustomerID','Country'], as_index=False)['InvoiceNo'].count().sort_values(by='InvoiceNo', ascending=False)
+sales_per_cust.columns = ['CustomerID', 'Country', "NumberOfSales"]
+
+# Group by to create plots
+ax = df2.groupby('InvoiceNo')['dayofweek'].unique().value_counts().sort_index().plot('bar',color=color[0],figsize=(15,6))
+ax.set_xlabel('Day',fontsize=15)
+ax.set_ylabel('Number of Orders',fontsize=15)
+ax.set_title('Number of orders for different Days',fontsize=15)
+ax.set_xticklabels(('Mon','Tue','Wed','Thur','Fri','Sun'), rotation='horizontal', fontsize=15)
+plt.show()
